@@ -1,0 +1,38 @@
+a)
+Team Name: OS Hackers
+Team Members:
+Name: Sravanika Doddi       UB#: 50107799      Email: sravanik@buffalo.edu
+Name: Junaid Shaikh         UB#: 50208476      Email: junaidsh@buffalo.edu
+Name: Parvathi Thampi       UB#: 50208889      Email: pthampi@buffalo.edu 
+
+b)
+We used a list data structure to queue the requests. We created a request object that contains important information such as whether the request is a GET request or a HEAD request, followed by the name of the file, the content type of the file, the file size, request time, arrival time, status line, status code, IP address and the service time. As soon as a new request arrives, we create a new request object and then add it to this list that holds the requests. 
+For the scheduling, we implement either FCFS (First Come First Serve) or SJF (Shortest Job First), the default being set to FCFS. If the scheduling algorithm has been set to SJF (set via the -s option) then a custom comparator is given as a parameter to the request list and then we sort the request list based on the file size information, the file size information is considered to be the job length for scheduling purposes, assuming that larger files will take longer to serve. Each time a new request comes in and the scheduling is SJF, the request list is sorted to ensure shorter jobs will always be executed first. The request is then assigned to one of the available worker threads for service.
+ 
+To achieve multithreading a threadpool is created, which creates ‘n’ worker threads, the value of ‘n’ will be provided by the user at the time of execution (set by the -n option).  We also used a list to store the worker threads and each time a new worker thread is created, it is added into the list. Later, we go through the list of worker threads and call thread.join on each of the threads to make main thread wait for the worker threads to finish executing. Each of these threads implement a routine that serves the given request. 
+To achieve synchronization, we have used mutex’s which ensures mutual exclusion of shared variables .There is a mutex on the request list since requests will be added by the listener thread and requests will be popped of the list by the worker threads. So anytime we need to access the request list, we need to get the mutex and then add the request in front of the list, and then release the mutex once we are done with the request list. If we need to pop an element we need to attain the mutex again, pop the element, and then release the mutex. In addition, we use a counting semaphore request_count which is initialized to zero. This semaphore is incremented based on the incoming requests, before a request is processed there is a lock on this semaphore. The worker threads will wait until a request becomes available and once it gets the semaphore, it decrements the value. 
+ 
+c) 
+As we have seen in class, context switching between threads is much faster than context switching between processes. For the project, we have one process and all the threads are running within that one process.  We have a listener thread that will listen to any incoming connections and it will add to the request list. Once this thread has been created, we are creating the threadpool with contains the -n worker threads. In the beginning, all worker threads will sleep for the -t seconds, and then start processing the requests and send information back to the client. After the -t seconds has passed, all the worker threads will try to attain the lock on the request list to pop off a request. However, only one thread will be allowed to enter the critical section and grab the lock. After the thread is done popping, it will release the lock. This is where the context switch happens to the second thread as it will be allowed to enter the critical section now. 
+ 
+d) 
+Race conditions are usually avoided by adding mutexes and semaphores. We avoided race conditions by using one mutex for the request list and a semaphore for the which is incremented every time a requested is added, and decremented when a process is removed. The listener thread will try to attain the request list mutex and once it acquires the lock, then the request is added to the request list, and once the request is added, the lock will be released. Then, if we need to pop an element off the request list, then we need to attain the lock the again and then pop the element. Since we only have one shared variable request list between the listener and the worker threads, and we have mutex to protect that critical section, the race conditions are avoided. 
+ 
+e) 
+The basic design for the project is we have a listener thread that will add the requests to the request list, and each of the worker threads will process the requests and send the information back to the client. One main advantage is that every time a request comes in, a new request object is created. Since we are creating an object, we can store crucial information in it such as the filesize, the name of the size, the last modified time, the arrival, and service time. This the filesize is later used for sorting. An advantage of our design if the scheduling is set to SJF, then whenever a request comes in even after timeout has passed,  the request list is always sorted. The sorting is done in place for the request list. Another advantage is that our threads are synchronized, all the shared variables are protected with mutexes. In addition, we also used a semaphore because each time a new request arrives the semaphore is incremented, and based on the number of the request count in the semaphore , the same number of worker threads will start executing. This provides multithreading because all the threads can execute concurrently to provide the fastest execution. In addition, all the threads are in a thread pool, so they are always running and ready to execute new requests once they are done with their old requests just like a normal web server. 
+ 
+One disadvantage of our design is that we only have one thread for both listening for incoming requests and then scheduling the requests. In the project description, it was recommended to have 2 separate threads one for listening and one for scheduling.  However, we decided not to do that because we achieved all the required functionality using just one thread. However, if we used 2 threads it would improve the efficiency because we will not have the overhead of one thread add the requests to the queue and sorting each time a new request comes in. 
+
+f) References:-
+      http://www.cplusplus.com/doc/tutorial/files/
+      http://www.cplusplus.com/reference/ctime/strftime/?kw=strftime
+      https://www.gnu.org/software/libc/manual/html_node/Directory-Entries.html
+      http://man7.org/linux/man-pages/man3/sem_post.3.html
+      https://linux.die.net/
+      http://www.cplusplus.com/reference/list/list/sort/
+      http://www.cplusplus.com/reference/list/list/
+ 
+ 
+ 
+ 
+
